@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REPORT KEAMANAN</title>
+    <style>
+        *{
+            --w-flex : 80px;
+            font-family:Arial, Helvetica, sans-serif
+        }
+
+        @media print {
+            .pagebreak { page-break-before: always; } /* page-break-after works, as well */
+            .display-print{ display: block !important;}
+        }
+
+        .display-print{
+            display: none;
+        }
+
+        .flex-container{
+            display: flex;
+            width: calc(7*(var(--w-flex)+10));
+            flex-wrap: wrap;
+        }
+        .flex-calendarr{  
+            width: var(--w-flex);
+            height: var(--w-flex);
+
+            border: 1px solid black;
+            margin: 0px;
+            padding: 10px;
+            box-sizing: border-box;
+
+            text-align: left;
+            font-size: 25px;
+
+            /* background-color: bisque; */
+        }
+
+        .flex-calendarr:hover{
+            cursor: pointer;
+            background-color: aquamarine;
+        }
+
+        .thisMonth{
+            color: black;
+        }
+
+        .otherMonth{
+            color: rgb(145, 145, 145) !important;
+            /* filter: grayscale(0.1) brightness(1.2); */
+            opacity: 0.3;
+        }
+
+        .sunday{
+            color: red !important;
+        }
+
+        .month-title{
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 0px;
+            padding-bottom: 0px;
+        }
+
+        .today{
+            outline: 1px dashed red;
+            outline-offset: -3px;
+        }
+
+        .data-detail{
+            margin: 10px;
+            border: 2px dashed rgb(107, 106, 102);
+            padding: 5px;
+
+            box-sizing: border-box;
+        }
+
+        .flex-child{
+            text-wrap: "warp";
+            width: calc(1.5*var(--w-flex));
+            height: calc(1.5*var(--w-flex));
+
+            background-color: whitesmoke;
+        }
+
+        .date-card{
+            font-size: 46px;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+</body>
+<script>
+    const thisYears = 2025;
+    const thisMonth = (new Date()).getMonth();
+    
+    const Proyek = "Pekerjaan Farm & Hatchery"
+    const app_dir = document.getElementById("app");
+
+    function createHeader(el){
+        let title = document.createElement("h1");
+        title.innerText = "Laporan Keamanan";
+        title.style.marginBottom = "0px";
+        el.append(title);
+        el.append("Dokumentasi Absen dan Arsip keamanan Proyek "+Proyek);
+        el.append(document.createElement("br"));
+        el.append("bulan ");
+        createSelector(el)
+    }
+
+    function createSelector(el){
+        const selector = document.createElement("select");
+        selector.name = "month";
+        selector.id = "month";
+
+        month = [];
+        for(let i = 0; i<12; i++){
+            let d = new Date(thisYears,i);
+            let monthName = d.toLocaleDateString("default",{month:"long"});
+
+            let itm = document.createElement("option");
+            itm.value = i;
+            itm.innerText = monthName
+
+            month.push(itm)
+        }
+
+        selector.append(...month);
+        selector.onchange = execMonth;
+
+        el.append(selector)
+
+    }
+    
+    class gbCalendarr {
+        constructor(year_, month_){
+            this.origin_year = year_;
+            this.origin_month = month_;
+
+            this.start_date = new Date(this.origin_year, this.origin_month);
+            this.offside_day = this.start_date.getDay();
+
+            this.origin_name_of_month = this.start_date.toLocaleString("default", {month: "long"});
+            this.base_api = "https://script.google.com/macros/s/AKfycbw44FFPKwy4UqkI2d8egpbyN30DwCqYoMjcqUEBOmCKmsV5vLRf934IAMrjXADf0SbqBw/exec";
+
+            
+            this.start_date.setDate(this.start_date.getDate()-this.offside_day);
+
+            this.end_date = new Date(this.start_date);
+            this.end_date.setDate(this.end_date.getDate() + 35);
+            
+        }
+
+        getData() {
+            return new Promise((resolve, reject) => {
+                fetch(this.base_api)
+                .then(d => d.json())
+                .then((dat, err) => {
+                    if (err) return null;
+
+                    try {
+                    resolve(dat.data);
+                    } catch (err) {
+                    reject(err);
+                    }
+                })
+            })
+        }
+
+        get2digit(num){
+            var a = ("0").repeat(4)+num.toLocaleString();
+            var new_num = a.split("").reverse().splice(0,2).reverse().join("");
+            return new_num;
+        }
+
+        getDownloadUrl(id){
+            return `https://drive.google.com/thumbnail?id=`+id;
+        }
+
+        getEmbedUrl(id){
+            return `https://drive.google.com/embeddedfolderview?id=`+id+"#list"
+        }
+
+        getQRcodeUrl(data){
+            return `https://quickchart.io/qr?ecLevel=L&margin=2&size=56&text=`+encodeURI(data);
+        }
+
+        getViewUrl(id){
+            return `https://drive.google.com/file/d/${id}/view`
+        }
+
+        createQR(data,width=50,height=50){
+            let url = this.getQRcodeUrl(data);
+            let elm = document.createElement("img");
+            elm.src = url;
+            elm.width = width;
+            elm.height = height;
+
+            return elm;
+        }
+
+        digit2Date(digitId){
+            let digit = digitId.split(""),
+                yy = "20"+digit.splice(0,2).join(""),
+                mm = digit.splice(0,2).join(""),
+                dd = digit.splice(0,2).join("");
+
+            return new Date(yy,mm-1,dd); 
+        }
+
+        dateId(date){
+            return `callendar-${this.get2digit(date.getFullYear())}${this.get2digit(date.getMonth()+1)}${this.get2digit(date.getDate())}`
+        }
+
+        pageBreak(){
+            let pagebreak = document.createElement("div");
+            pagebreak.classList.add("pagebreak")
+            return pagebreak;
+        }
+
+        AttachmentCounter(attachment){
+            let img = attachment.filter(e => e.mime.includes("image"));
+            let vid = attachment.filter(e => e.mime.includes("video"));
+            let txt = attachment.filter(e => e.mime.includes("text"));
+            let elm = document.createElement("div");
+            elm.append("📎Attachment: ");
+            if(img.length) elm.append(`${img.length}📰 `)
+            if(vid.length) elm.append(`${vid.length}🎬 `)
+            if(txt.length) elm.append(`${txt.length}📜 `)
+
+            elm.style.filter = "grayscale(0.3)";
+            elm.style.fontSize = "9px"
+
+            return elm;
+        }
+
+        renderFlexDay(date, data){
+            let isTheRightMonth = date.getMonth() == this.origin_month;
+            let container = document.createElement("a");
+            container.setAttribute("href", "#"+this.dateId(date).replace("callendar", "detail"))
+            container.style.textDecoration = "none"
+            container.innerText = date.getDate();
+            container.classList.add("flex-calendarr")
+            container.classList.add(isTheRightMonth? "thisMonth": "otherMonth");
+            
+            if(date.getDay()==0) container.classList.add("sunday")
+            if(date.toDateString() == (new Date()).toDateString()) container.classList.add("today")
+
+            container.setAttribute("month",date.getMonth());
+            container.setAttribute("date", date.getDate());
+            container.setAttribute("id", this.dateId(date));
+            let chekmark = document.createElement("p")
+            chekmark.innerText = "✅";
+            chekmark.style.fontSize = "14px";
+            chekmark.style.textAlign = "right";
+            chekmark.style.color = "#59cbe8"
+            if(data?.childs.length) container.append(chekmark)
+            return container;
+        }
+
+        renderCard(date, data){
+            var childs = data.childs.filter(e => e.mime.includes("image"))
+            let elm = document.createElement("div");
+            elm.setAttribute("id", this.dateId(date).replace("callendar","detail"))
+            elm.classList.add("flex-container");
+            elm.classList.add("data-detail");
+            elm.style.position = "relative";
+
+
+            let date_card = document.createElement("div");
+            let detail_card = document.createElement("p");
+            detail_card.innerText = date.toLocaleString("default", {month:"long"})+" "+date.getFullYear();
+            detail_card.style.textAlign = "center";
+            detail_card.style.fontSize = "11px";
+
+            let atch = document.createElement("a");
+            atch.href = this.getEmbedUrl(data.id);
+            atch.target = "BLANK";
+            atch.style.textDecoration = "none";
+            atch.append(this.AttachmentCounter(data.childs)) 
+
+            date_card.innerHTML = `<b>${date.getDate()}</b>`;
+            date_card.style.textAlign = "center";
+            date_card.append(detail_card);
+            date_card.append(atch);
+            date_card.classList.add("date-card");
+            date_card.classList.add("flex-child");
+
+            let detail_repo = document.createElement("div");
+            let repo_uri = this.getEmbedUrl(data.id);
+            let repo_anchor = document.createElement("a");
+            repo_anchor.href = repo_uri;
+            repo_anchor.target = "BLANK"
+            repo_anchor.style.fontSize = "12px";
+            repo_anchor.append(this.createQR(repo_uri,60,60))
+
+            detail_repo.classList.add("detail-repo");
+            detail_repo.append(repo_anchor);
+            detail_repo.style.position = "absolute";
+            detail_repo.style.bottom = "-5px";
+            detail_repo.style.right = "0px";
+
+
+            elm.append(detail_repo);
+            elm.append(date_card);
+
+            childs.splice(0,3).map((e,i) => {
+                const el = document.createElement("div");
+                const anchor = document.createElement("a");
+                anchor.href = this.getViewUrl(e.id);
+                anchor.target = "BLANK";
+
+                el.classList.add("flex-child");
+                el.style.backgroundSize = "cover";
+                el.style.backgroundRepeat= "no-repeat"
+                el.style.backgroundImage = `url(${this.getDownloadUrl(e.id)})`;
+                el.style.margin = "10px"
+                // el.append(document.createTextNode(e.name));
+                anchor.append(el)
+                elm.append(anchor);
+            })
+            
+            return elm;
+        }
+
+        update(el){
+            this.start_date = new Date(this.origin_year, this.origin_month);
+            this.offside_day = this.start_date.getDay();
+
+            this.origin_name_of_month = this.start_date.toLocaleString("default", {month: "long"});
+            
+            this.start_date.setDate(this.start_date.getDate()-this.offside_day);
+
+            this.end_date = new Date(this.start_date);
+            this.end_date.setDate(this.end_date.getDate() + 35);
+
+            this.render(el);
+        }
+
+        async render(el){
+            let master_data = !this.master_data? await this.getData(): this.master_data;
+            this.master_data = master_data;
+            console.log(master_data)
+            el.innerHTML = "";
+            let elm = document.createElement("div");
+            elm.classList.add("flex-container");
+            let temporary_date = this.start_date;
+            for(let x = 0; x<35; x++){
+                let date_id = this.dateId(temporary_date);
+                // console.log(date_id)
+                let folder = master_data.find(e => "callendar-"+e.name == date_id);
+                // if(folder) console.log(folder)
+                let node = this.renderFlexDay(temporary_date, folder);
+                elm.append(node);
+                temporary_date.setDate(temporary_date.getDate() + 1);
+            }
+            let month_title = document.createElement("p");
+            month_title.classList.add("month-title")
+            month_title.innerText = this.origin_name_of_month + " " + this.start_date.getFullYear();
+            el.append(month_title)
+            el.append("Rekap arsip dokumentasi pertanggal")
+            el.append(elm);
+            el.append(document.createElement("br"));
+            el.append("note:");
+            el.append(document.createElement("br"));
+            el.append("1. ✅ Indikasi record tersedia");
+            el.append(document.createElement("br"));
+            el.append("2. Klik tanggal untuk detail arsip dokumentasi");
+            el.append(document.createElement("br"));
+            el.append("3. Klik QR atau Scan untuk arsip yang lebih lengkap");
+            el.append(document.createElement("br"));
+            el.append("4. Nyalakan opsi 'Grafis dan Latar Belakang' untuk melakukan print");
+            el.append(document.createElement("br"));
+
+            el.append(this.pageBreak())
+
+            let criteria = `${this.get2digit(this.origin_year)}${this.get2digit(this.origin_month+1)}`;
+            let filtered_data = master_data.filter(e => e.name.includes(criteria));
+
+            let ndTitle = document.createElement("h2");
+            ndTitle.innerHTML = "Detail Arsip";
+            el.append(ndTitle);
+
+            filtered_data.sort((a,b)=>a.name - b.name).map((e,i) => {
+                let date = this.digit2Date(e.name);
+                el.append(this.renderCard(date, e));
+
+                // seprate every 5 entry
+                if((i+1)%5 == 0) {
+                    el.append(this.pageBreak());
+                    let ndTitle = document.createElement("h2");
+                    ndTitle.innerHTML = "Detail Arsip";
+                    ndTitle.classList.add("display-print")
+                    el.append(ndTitle);
+                };
+            })
+            return true;
+        }
+    }
+
+    function execMonth(el){
+        let month = el.srcElement.value
+        callendar.origin_month = month;
+
+        callendar.update(callendar_dir)
+    }
+
+    var callendar = new gbCalendarr(thisYears,thisMonth);
+    var callendar_dir = document.createElement("div");
+    callendar_dir.id = "callendar-dir";
+    callendar_dir.innerText = "Fetching data..."
+    
+    // if(navigator.online){
+        createHeader(app_dir);
+        app_dir.append(callendar_dir)
+        callendar.render(callendar_dir);
+    // }else{
+    //     callendar_dir.append("Please chek your Connections")
+    //     let reload_btn = document.createElement("button");
+    //     reload_btn.innerHTML = "Reload";
+    //     // reload_btn.onclick = location.reload();
+    //     callendar_dir.append(reload_btn)
+    // }
+    
+ 
+</script>
+</html>
