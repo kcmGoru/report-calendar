@@ -412,17 +412,19 @@
         callendar.origin_month = month;
         callendar.update(callendar_dir)
     }
-    var month_dir = document.getElementById("month");
-    month_dir.value = thisMonth;
+    
     var callendar = new gbCalendarr(thisYears,thisMonth);
     var callendar_dir = document.createElement("div");
     callendar_dir.id = "callendar-dir";
     callendar_dir.innerText = "Fetching data..."
     
+    
     // if(navigator.online){
         createHeader(app_dir);
         app_dir.append(callendar_dir)
         callendar.render(callendar_dir);
+        var month_dir = document.getElementById("month");
+        month_dir.value = thisMonth;
     // }else{
     //     callendar_dir.append("Please chek your Connections")
     //     let reload_btn = document.createElement("button");
